@@ -20,7 +20,7 @@ class MusicPlayer {
     bool begin(HardwareSerial &serial);
     void playRandomSong();     // picks 1-10 at random and plays it
     void stop();
-    bool isPlaying();          // poll this each loop() while a song plays
+    bool hasFinished();        // true when DFPlayer reports the track ended
     uint8_t lastSongIndex() const { return _lastIndex; }
 
   private:

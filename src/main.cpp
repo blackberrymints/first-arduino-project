@@ -32,8 +32,16 @@ bool pressed(int pin) {
   return digitalRead(pin) == LOW;
 }
 
+void stopMusic() {
+  if (!musicActive) return;
+  music.stop();
+  musicActive = false;
+  pet.onMusicStop();
+}
+
 void handleSelect() {
   MenuItem item = (MenuItem)selectedIndex;
+  if (item != MenuItem::MUSIC) stopMusic();
 
   switch (item) {
     case MenuItem::FEED:
@@ -83,9 +91,11 @@ void loop() {
 
   if (now - lastButtonMs > DEBOUNCE_MS) {
     if (pressed(PIN_LEFT)) {
+      stopMusic();
       selectedIndex = (selectedIndex + 4) % 5; // move left, wrap
       lastButtonMs = now;
     } else if (pressed(PIN_RIGHT)) {
+      stopMusic();
       selectedIndex = (selectedIndex + 1) % 5; // move right, wrap
       lastButtonMs = now;
     } else if (pressed(PIN_SELECT)) {
@@ -96,7 +106,7 @@ void loop() {
 
   // If a song finished playing, return the pet to idle/sleeping and
   // clear the "now playing" overlay.
-  if (musicActive && !music.isPlaying()) {
+  if (musicActive && music.hasFinished()) {
     pet.onMusicEnd();
     musicActive = false;
   }

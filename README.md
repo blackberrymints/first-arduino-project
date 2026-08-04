@@ -29,8 +29,8 @@ Cycle with LEFT/RIGHT, confirm with SELECT:
 **ST7735 display:**
 | Display pin | ESP32 pin |
 |---|---|
-| CS   | GPIO 5 |
-| DC   | GPIO 2 |
+| CS   | GPIO 27 |
+| DC   | GPIO 14 |
 | RST  | GPIO 4 |
 | SCLK | GPIO 18 |
 | MOSI | GPIO 23 |

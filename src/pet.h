@@ -7,6 +7,7 @@
 enum class PetMood {
   IDLE,
   EATING,
+  PETTING,
   HAPPY,
   SLEEPING,
   SAD,
@@ -46,6 +47,7 @@ class Pet {
     void toggleSleep();
     void onMusicStart();      // call when music action begins
     void onMusicEnd();        // call when music playback finishes
+    void onMusicStop();       // call when the user leaves music mode
 
     PetMood mood() const;
     const PetState& state() const { return _state; }
@@ -56,6 +58,8 @@ class Pet {
   private:
     PetState _state;
     void setTemporaryMood(PetMood m, unsigned long durationMs);
+    PetMood baseMood() const;
+    void refreshBaseMood();
     void clampStats();
 };
 

@@ -32,15 +32,26 @@ void Display::drawSprite(PetMood mood) {
       frameCount = SLEEP_FRAME_COUNT;
       break;
     case PetMood::HAPPY:
+      frames = HAPPY_FRAMES;
+      frameCount = HAPPY_FRAME_COUNT;
+      break;
+    case PetMood::PETTING:
       frames = PET_FRAMES;
       frameCount = PET_FRAME_COUNT;
       break;
-    // EATING, SAD, and LISTENING_MUSIC don't have dedicated art yet -
-    // falls back to the idle frame until more sprites are added.
-    case PetMood::IDLE:
     case PetMood::EATING:
+      frames = EAT_FRAMES;
+      frameCount = EAT_FRAME_COUNT;
+      break;
     case PetMood::SAD:
+      frames = SAD_FRAMES;
+      frameCount = SAD_FRAME_COUNT;
+      break;
     case PetMood::LISTENING_MUSIC:
+      frames = MUSIC_FRAMES;
+      frameCount = MUSIC_FRAME_COUNT;
+      break;
+    case PetMood::IDLE:
     default:
       frames = IDLE_FRAMES;
       frameCount = IDLE_FRAME_COUNT;
@@ -55,8 +66,12 @@ void Display::drawSprite(PetMood mood) {
     _lastFrameMs = now;
     _lastAnimMood = mood;
   } else if (frameCount > 1 && now - _lastFrameMs >= 150) {
-    // Advance to the next frame, looping back to 0 at the end
-    _frameIndex = (_frameIndex + 1) % frameCount;
+    // Feeding plays once; continuous states loop until their mood changes.
+    if (mood == PetMood::EATING) {
+      if (_frameIndex < frameCount - 1) _frameIndex++;
+    } else {
+      _frameIndex = (_frameIndex + 1) % frameCount;
+    }
     _lastFrameMs = now;
   }
 
@@ -118,7 +133,7 @@ void Display::drawMusicOverlay(uint8_t songIndex) {
 }
 
 void Display::updateSprite(PetMood mood) {
-  drawSprite(mood); // drawSprite already only touches the 32x32 sprite area
+  drawSprite(mood); // drawSprite only touches the 64x64 sprite area
 }
 
 void Display::render(PetMood mood, MenuItem selected, const PetState &state, uint8_t nowSongIndex) {

@@ -5,7 +5,8 @@ static Preferences prefs;
 
 // --- Tunable timing/rates ---
 static const unsigned long DECAY_INTERVAL_MS   = 60UL * 1000UL; // check once a minute
-static const unsigned long MOOD_FLASH_MS        = 3UL * 1000UL;  // eating/happy/sad face duration
+static const unsigned long EATING_ANIMATION_MS = 22UL * 150UL;  // one pass through all eat frames
+static const unsigned long PETTING_ANIMATION_MS = 3UL * 1000UL;
 
 void Pet::begin() {
   load();
@@ -26,10 +27,10 @@ void Pet::clampStats() {
 void Pet::update() {
   unsigned long now = millis();
 
-  // Expire temporary moods (eating/happy/sad flashes) back to idle/sleeping
+  // Return to the happiness-based face after a one-shot action animation.
   if (_state.moodUntil != 0 && now >= _state.moodUntil) {
     _state.moodUntil = 0;
-    _state.currentMood = _state.sleeping ? PetMood::SLEEPING : PetMood::IDLE;
+    refreshBaseMood();
   }
 
   // Stat decay, once per DECAY_INTERVAL_MS
@@ -54,6 +55,10 @@ void Pet::update() {
     if (_state.ageMinutes % 15 == 0) {
       save();
     }
+
+    if (_state.moodUntil == 0 && _state.currentMood != PetMood::LISTENING_MUSIC) {
+      refreshBaseMood();
+    }
   }
 }
 
@@ -62,41 +67,58 @@ void Pet::setTemporaryMood(PetMood m, unsigned long durationMs) {
   _state.moodUntil = millis() + durationMs;
 }
 
+PetMood Pet::baseMood() const {
+  if (_state.sleeping) return PetMood::SLEEPING;
+  if (_state.happiness < 20) return PetMood::SAD;
+  if (_state.happiness > 85) return PetMood::HAPPY;
+  return PetMood::IDLE;
+}
+
+void Pet::refreshBaseMood() {
+  _state.currentMood = baseMood();
+}
+
 void Pet::feed() {
   if (_state.sleeping) return; // no feeding while asleep
   _state.hunger = min(100, _state.hunger + 30);
   _state.happiness = min(100, _state.happiness + 5);
-  setTemporaryMood(PetMood::EATING, MOOD_FLASH_MS);
+  setTemporaryMood(PetMood::EATING, EATING_ANIMATION_MS);
 }
 
 void Pet::pet() {
   if (_state.sleeping) return;
   _state.happiness = min(100, _state.happiness + 15);
-  setTemporaryMood(PetMood::HAPPY, MOOD_FLASH_MS);
+  setTemporaryMood(PetMood::PETTING, PETTING_ANIMATION_MS);
 }
 
 void Pet::scold() {
   if (_state.sleeping) return;
   _state.discipline = min(100, _state.discipline + 15);
   _state.happiness = (_state.happiness >= 10) ? _state.happiness - 10 : 0;
-  setTemporaryMood(PetMood::SAD, MOOD_FLASH_MS);
+  refreshBaseMood();
 }
 
 void Pet::toggleSleep() {
   _state.sleeping = !_state.sleeping;
-  _state.currentMood = _state.sleeping ? PetMood::SLEEPING : PetMood::IDLE;
   _state.moodUntil = 0;
+  refreshBaseMood();
 }
 
 void Pet::onMusicStart() {
   if (_state.sleeping) return;
-  setTemporaryMood(PetMood::LISTENING_MUSIC, 0); // 0 = held until onMusicEnd() called
+  _state.currentMood = PetMood::LISTENING_MUSIC;
+  _state.moodUntil = 0; // held until onMusicEnd()/onMusicStop()
 }
 
 void Pet::onMusicEnd() {
   _state.happiness = min(100, _state.happiness + 10);
-  _state.currentMood = _state.sleeping ? PetMood::SLEEPING : PetMood::IDLE;
   _state.moodUntil = 0;
+  refreshBaseMood();
+}
+
+void Pet::onMusicStop() {
+  _state.moodUntil = 0;
+  refreshBaseMood();
 }
 
 PetMood Pet::mood() const {
@@ -123,5 +145,5 @@ void Pet::load() {
   _state.ageMinutes = prefs.getUInt("age", 0);
   _state.sleeping   = prefs.getBool("sleep", false);
   prefs.end();
-  _state.currentMood = _state.sleeping ? PetMood::SLEEPING : PetMood::IDLE;
+  refreshBaseMood();
 }
